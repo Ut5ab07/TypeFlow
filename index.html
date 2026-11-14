@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="TypeFlow is a focused typing speed test for improving speed and accuracy.">
+  <title>TypeFlow — Typing speed, made visible</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#dashboard" aria-label="TypeFlow dashboard">
+      <span class="brand-mark" aria-hidden="true">⌁</span>
+      <span>Type<span>Flow</span></span>
+    </a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <button class="nav-link active" data-view="dashboard">Dashboard</button>
+      <button class="nav-link" data-view="test">Test</button>
+      <button class="nav-link" data-view="results">History</button>
+    </nav>
+    <button class="icon-button mobile-menu" id="mobileMenuButton" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+  </header>
+
+  <main>
+    <section class="view active" id="dashboardView" aria-labelledby="dashboardTitle">
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="status-dot"></span> Your typing workspace</p>
+          <h1 id="dashboardTitle">Speed is a skill.<br><em>Build yours.</em></h1>
+          <p class="hero-description">A quiet place to sharpen your typing, one intentional test at a time. Track your rhythm, improve your accuracy, and make every keystroke count.</p>
+          <button class="primary-button large" data-view="test">Start typing <span>→</span></button>
+        </div>
+        <div class="hero-orbit" aria-hidden="true">
+          <div class="orbit orbit-one"></div>
+          <div class="orbit orbit-two"></div>
+          <div class="orbit-core"><span>⌁</span></div>
+          <span class="orbit-label label-top">FOCUS</span>
+          <span class="orbit-label label-right">RHYTHM</span>
+          <span class="orbit-label label-bottom">FLOW</span>
+        </div>
+      </div>
+
+      <div class="stats-grid" aria-label="Your typing statistics">
+        <article class="stat-card featured">
+          <div class="stat-heading"><span>Personal best</span><span class="stat-icon">↗</span></div>
+          <strong id="bestWpm">—</strong><small>WPM</small>
+          <div class="stat-foot"><span class="accent-line"></span><span id="bestLabel">Complete a test to set your record</span></div>
+        </article>
+        <article class="stat-card">
+          <div class="stat-heading"><span>Average speed</span><span class="stat-icon">◒</span></div>
+          <strong id="averageWpm">—</strong><small>WPM</small>
+          <div class="stat-foot"><span id="averageLabel">No sessions yet</span></div>
+        </article>
+        <article class="stat-card">
+          <div class="stat-heading"><span>Tests completed</span><span class="stat-icon">✓</span></div>
+          <strong id="totalTests">0</strong><small>SESSIONS</small>
+          <div class="stat-foot"><span id="streakLabel">Start your first session</span></div>
+        </article>
+      </div>
+
+      <div class="dashboard-lower">
+        <section class="panel activity-panel">
+          <div class="section-heading"><div><p class="eyebrow">Your journey</p><h2>Recent activity</h2></div><button class="text-button" data-view="results">View history <span>→</span></button></div>
+          <div id="recentActivity" class="activity-list"></div>
+        </section>
+        <section class="panel how-panel">
+          <p class="eyebrow">The TypeFlow method</p>
+          <h2>Find your flow.</h2>
+          <p>Type the words as they appear. Keep your eyes ahead, stay relaxed, and let consistency do the work.</p>
+          <div class="method-steps">
+            <div><span>01</span><strong>Choose</strong><small>Pick a pace and difficulty.</small></div>
+            <div><span>02</span><strong>Type</strong><small>Stay present with each word.</small></div>
+            <div><span>03</span><strong>Improve</strong><small>Use your data to grow.</small></div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="view" id="testView" aria-labelledby="testTitle">
+      <div class="test-topbar"><div><p class="eyebrow">Typing session</p><h1 id="testTitle">Stay in the flow.</h1></div><button class="text-button" data-view="dashboard">← Dashboard</button></div>
+      <div class="test-layout">
+        <aside class="test-sidebar">
+          <div class="config-group"><span class="config-label">Duration</span><div class="segmented" id="durationOptions">
+            <button data-duration="30">30s</button><button class="selected" data-duration="60">60s</button><button data-duration="120">120s</button>
+          </div></div>
+          <div class="config-group"><span class="config-label">Difficulty</span><div class="difficulty-options" id="difficultyOptions">
+            <button class="selected" data-difficulty="easy"><span class="difficulty-dot easy-dot"></span>Easy <small>Warm up</small></button>
+            <button data-difficulty="medium"><span class="difficulty-dot medium-dot"></span>Medium <small>Steady</small></button>
+            <button data-difficulty="hard"><span class="difficulty-dot hard-dot"></span>Hard <small>Challenge</small></button>
+          </div></div>
+          <div class="sidebar-tip"><span>⌘</span><p><strong>Quick tip</strong><br>Accuracy first. Speed follows naturally.</p></div>
+        </aside>
+        <div class="typing-stage">
+          <div class="live-stats"><div><span>Time</span><strong id="timer">01:00</strong></div><div><span>WPM</span><strong id="liveWpm">0</strong></div><div><span>Accuracy</span><strong id="liveAccuracy">100%</strong></div><div><span>Characters</span><strong id="liveChars">0</strong></div></div>
+          <div class="progress-track"><span id="progressBar"></span></div>
+          <div class="typing-card">
+            <div id="textDisplay" class="text-display" aria-label="Text to type"></div>
+            <textarea id="typingInput" class="typing-input" rows="1" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Type the text shown above"></textarea>
+            <div class="typing-footer"><span id="testStatus">Ready when you are.</span><button class="restart-button" id="restartButton">↻ Restart <kbd>R</kbd></button></div>
+          </div>
+          <p class="keyboard-hint">The timer starts with your first keystroke <span>•</span> <kbd>Esc</kbd> to finish</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="resultsView" aria-labelledby="resultsTitle">
+      <div class="results-heading"><div><p class="eyebrow">Session complete</p><h1 id="resultsTitle">That was a good run.</h1><p id="resultsSubtitle">Your focus is the real score.</p></div><span class="result-badge" id="resultBadge">NEW SESSION</span></div>
+      <div class="result-grid">
+        <div class="result-hero-card"><span class="eyebrow">Final speed</span><div><strong id="finalWpm">0</strong><span>WPM</span></div><div class="result-comparison" id="resultComparison">Complete a test to see your progress.</div><div class="mini-chart" id="miniChart" aria-label="WPM performance visualization"></div></div>
+        <div class="result-metrics"><div><span>Accuracy</span><strong id="finalAccuracy">0%</strong></div><div><span>Correct chars</span><strong id="finalCorrect">0</strong></div><div><span>Mistakes</span><strong id="finalIncorrect">0</strong></div><div><span>Duration</span><strong id="finalDuration">0s</strong></div></div>
+      </div>
+      <div class="results-actions"><button class="primary-button" id="retakeButton">Retake test <span>↻</span></button><button class="secondary-button" data-view="dashboard">Back to dashboard</button></div>
+      <section class="panel history-panel"><div class="section-heading"><div><p class="eyebrow">Your records</p><h2>Test history</h2></div><button class="danger-button" id="clearHistoryButton">Clear history</button></div><div id="historyList" class="history-list"></div></section>
+    </section>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

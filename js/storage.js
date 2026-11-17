@@ -7,6 +7,7 @@ const defaultData = {
   xp: 0,
   completedChallenges: [],
   achievements: [],
+  keyStats: {},
   streak: {
     current: 0,
     longest: 0,
@@ -52,6 +53,15 @@ function normalizeStreak(streak) {
   return normalized;
 }
 
+function normalizeKeyStats(keyStats) {
+  if (!keyStats || typeof keyStats !== "object") return {};
+  return Object.fromEntries(Object.entries(keyStats).filter(([, value]) => value && Number.isFinite(value.attempts) && Number.isFinite(value.correct) && Number.isFinite(value.incorrect)).map(([key, value]) => [key, {
+    attempts: Math.max(0, value.attempts),
+    correct: Math.max(0, value.correct),
+    incorrect: Math.max(0, value.incorrect)
+  }]));
+}
+
 function readData() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -64,6 +74,7 @@ function readData() {
       history: parsed.history.filter(item => item && Number.isFinite(item.wpm)),
       completedChallenges: Array.isArray(parsed.completedChallenges) ? parsed.completedChallenges : [],
       achievements: Array.isArray(parsed.achievements) ? parsed.achievements : [],
+      keyStats: normalizeKeyStats(parsed.keyStats),
       streak: normalizeStreak(parsed.streak)
     };
   } catch {
@@ -87,13 +98,14 @@ export function getHistory() { return readData().history; }
 export function saveSettings(settings) { const data = readData(); writeData({ ...data, ...settings }); }
 export function saveTest(result) {
   const data = readData();
-  const history = [result, ...data.history].slice(0, 50);
+  const { keyStats, ...historyResult } = result;
+  const history = [historyResult, ...data.history].slice(0, 50);
   writeData({ ...data, history, bestWpm: Math.max(data.bestWpm || 0, result.wpm) });
   return { ...data, history, bestWpm: Math.max(data.bestWpm || 0, result.wpm) };
 }
 export function clearHistory() {
   const data = readData();
-  writeData({ ...defaultData, duration: data.duration, difficulty: data.difficulty, xp: data.xp, completedChallenges: data.completedChallenges, achievements: data.achievements, streak: data.streak });
+  writeData({ ...defaultData, duration: data.duration, difficulty: data.difficulty, xp: data.xp, completedChallenges: data.completedChallenges, achievements: data.achievements, streak: data.streak, keyStats: data.keyStats });
 }
 export function getProgress() {
   const data = readData();
@@ -104,6 +116,26 @@ export function saveProgress(progress) {
   const next = { ...data, ...progress };
   writeData(next);
   return { xp: next.xp, completedChallenges: next.completedChallenges, achievements: next.achievements };
+}
+export function getKeyStats() {
+  return readData().keyStats;
+}
+export function mergeKeyStats(sessionStats) {
+  const data = readData();
+  const keyStats = normalizeKeyStats(data.keyStats);
+  Object.entries(sessionStats || {}).forEach(([key, value]) => {
+    if (!value || !Number.isFinite(value.attempts)) return;
+    keyStats[key] = keyStats[key] || { attempts: 0, correct: 0, incorrect: 0 };
+    keyStats[key].attempts += value.attempts;
+    keyStats[key].correct += value.correct || 0;
+    keyStats[key].incorrect += value.incorrect || 0;
+  });
+  writeData({ ...data, keyStats });
+  return keyStats;
+}
+export function resetKeyStats() {
+  const data = readData();
+  writeData({ ...data, keyStats: {} });
 }
 export function getStreak() {
   return readData().streak;

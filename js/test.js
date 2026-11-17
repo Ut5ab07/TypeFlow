@@ -15,11 +15,17 @@ const paragraphs = {
   ]
 };
 
+export function normalizeHeatmapKey(character) {
+  if (character === " ") return "SPACE";
+  return character.length === 1 ? character.toLowerCase() : character;
+}
+
 export class TypingTest {
   constructor(elements, callbacks) { this.el = elements; this.callbacks = callbacks; this.reset(); }
   reset() {
     clearInterval(this.interval); this.running = false; this.finished = false; this.startedAt = 0; this.elapsed = 0; this.remaining = this.callbacks.getDuration();
     this.lastValue = "";
+    this.keyStats = {};
     const options = paragraphs[this.callbacks.getDifficulty()]; let text = options[Math.floor(Math.random() * options.length)];
     if (text === this.lastText && options.length > 1) text = options.find(item => item !== this.lastText) || text;
     this.lastText = text; this.text = text; this.renderText(""); this.el.input.value = ""; this.updateStats("");
@@ -43,6 +49,24 @@ export class TypingTest {
     this.el.accuracy.textContent = `${calculateAccuracy(correct, value.length)}%`; this.el.chars.textContent = value.length;
     this.el.progress.style.width = `${Math.min(100, (value.length / this.text.length) * 100)}%`;
   }
+  recordAttempts(value) {
+    let start = -1;
+    if (value.startsWith(this.lastValue)) {
+      start = this.lastValue.length;
+    } else if (value.length === this.lastValue.length) {
+      start = [...value].findIndex((character, index) => character !== this.lastValue[index]);
+    }
+    if (start < 0) return;
+    for (let index = start; index < value.length; index += 1) {
+      const expected = this.text[index];
+      if (!expected) continue;
+      const key = normalizeHeatmapKey(expected);
+      this.keyStats[key] = this.keyStats[key] || { attempts: 0, correct: 0, incorrect: 0 };
+      this.keyStats[key].attempts += 1;
+      if (value[index] === expected) this.keyStats[key].correct += 1;
+      else this.keyStats[key].incorrect += 1;
+    }
+  }
   input(value) {
     if (this.finished) return;
     if (value.length > this.text.length) {
@@ -50,6 +74,7 @@ export class TypingTest {
       this.el.input.value = value;
     }
     if (value.length > 0) this.start();
+    this.recordAttempts(value);
     if (value.length > this.lastValue.length) {
       const addedText = value.slice(this.lastValue.length);
       const hasMistake = [...addedText].some((character, offset) => character !== this.text[this.lastValue.length + offset]);
@@ -67,6 +92,6 @@ export class TypingTest {
     this.elapsed = Math.max(1, Math.min(this.callbacks.getDuration(), this.startedAt ? Math.ceil((Date.now() - this.startedAt) / 1000) : 0));
     this.el.input.disabled = true; this.el.status.textContent = "Session complete.";
     const value = this.el.input.value; this.updateStats(value);
-    this.callbacks.onFinish({ wpm: calculateWpm(this.correct, this.elapsed), accuracy: calculateAccuracy(this.correct, value.length), correct: this.correct, incorrect: this.incorrect, chars: value.length, duration: this.elapsed, difficulty: this.callbacks.getDifficulty(), date: new Date().toISOString() });
+    this.callbacks.onFinish({ wpm: calculateWpm(this.correct, this.elapsed), accuracy: calculateAccuracy(this.correct, value.length), correct: this.correct, incorrect: this.incorrect, chars: value.length, duration: this.elapsed, difficulty: this.callbacks.getDifficulty(), date: new Date().toISOString(), keyStats: this.keyStats });
   }
 }

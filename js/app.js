@@ -1,18 +1,20 @@
 import { TypingTest } from "./test.js";
 import { averageWpm, formatDate } from "./stats.js";
 import { ACHIEVEMENTS, LEVELS, getLevelForChallenge } from "./challenges.js";
-import { clearHistory, getHistory, getLocalDateKey, getProgress, getSettings, getStreak, recordStreakActivity, saveProgress, saveSettings, saveTest } from "./storage.js";
+import { getHeatClass, getKeyAccuracy, KEYBOARD_ROWS, PRACTICE_WORDS } from "./heatmap.js";
+import { clearHistory, getHistory, getKeyStats, getLocalDateKey, getProgress, getSettings, getStreak, mergeKeyStats, recordStreakActivity, resetKeyStats, saveProgress, saveSettings, saveTest } from "./storage.js";
 
 const $ = selector => document.querySelector(selector);
 const elements = { input: $("#typingInput"), display: $("#textDisplay"), timer: $("#timer"), wpm: $("#liveWpm"), accuracy: $("#liveAccuracy"), chars: $("#liveChars"), progress: $("#progressBar"), status: $("#testStatus") };
-let settings = getSettings(); let history = getHistory(); let progress = getProgress(); let streak = getStreak(); let currentResult = null; let activeChallenge = null;
-const views = { dashboard: $("#dashboardView"), test: $("#testView"), challenges: $("#challengesView"), results: $("#resultsView") };
+let settings = getSettings(); let history = getHistory(); let progress = getProgress(); let streak = getStreak(); let keyStats = getKeyStats(); let currentResult = null; let activeChallenge = null; let activePractice = null;
+const views = { dashboard: $("#dashboardView"), test: $("#testView"), challenges: $("#challengesView"), insights: $("#insightsView"), results: $("#resultsView") };
 
 function showView(name) {
   Object.entries(views).forEach(([key, view]) => view.classList.toggle("active", key === name));
   document.querySelectorAll(".nav-link").forEach(button => button.classList.toggle("active", button.dataset.view === name));
   if (name === "dashboard") renderDashboard();
   if (name === "challenges") renderChallenges();
+  if (name === "insights") renderInsights();
   if (name === "results") renderHistory();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -53,6 +55,7 @@ function startChallenge(id) {
   const level = LEVELS[levelKey];
   const challenge = level.challenges.find(item => item.id === id);
   if (!challenge || !isLevelUnlocked(levelKey) || progress.completedChallenges.includes(id)) return;
+  activePractice = null;
   activeChallenge = { id, levelKey, duration: level.duration, difficulty: level.difficulty, name: challenge.name };
   settings.duration = level.duration; settings.difficulty = level.difficulty; saveSettings(settings);
   document.querySelectorAll("[data-duration]").forEach(item => item.classList.toggle("selected", Number(item.dataset.duration) === settings.duration));
@@ -124,6 +127,50 @@ function renderStreak() {
     return `<div class="week-day ${state}"><span>${date.toLocaleDateString(undefined, { weekday: "short" })}</span><strong>${completed ? "✓" : ""}</strong><small>${date.getDate()}</small></div>`;
   }).join("");
 }
+function renderInsights() {
+  keyStats = getKeyStats();
+  $("#keyboardHeatmap").innerHTML = KEYBOARD_ROWS.map(row => `<div class="keyboard-row">${row.map(([key, label, size]) => `<button class="heat-key ${size || ""} ${getHeatClass(keyStats[key])}" data-heat-key="${key}" aria-label="${label} key">${label}</button>`).join("")}</div>`).join("");
+  document.querySelectorAll("[data-heat-key]").forEach(button => button.addEventListener("click", () => selectHeatKey(button.dataset.heatKey)));
+  const ranked = Object.entries(keyStats).filter(([, stat]) => stat.attempts >= 10);
+  renderKeyRanking("#weakestKeys", ranked.sort(([, left], [, right]) => getKeyAccuracy(left) - getKeyAccuracy(right)).slice(0, 5), "No keys have 10 attempts yet.");
+  renderKeyRanking("#strongestKeys", ranked.sort(([, left], [, right]) => getKeyAccuracy(right) - getKeyAccuracy(left)).slice(0, 5), "Complete more tests to see your strongest keys.");
+  const totals = Object.values(keyStats).reduce((summary, stat) => ({ attempts: summary.attempts + stat.attempts, errors: summary.errors + stat.incorrect }), { attempts: 0, errors: 0 });
+  $("#overallCharacters").textContent = totals.attempts;
+  $("#overallErrors").textContent = totals.errors;
+  $("#overallAccuracy").textContent = totals.attempts ? `${Math.round(((totals.attempts - totals.errors) / totals.attempts) * 100)}%` : "—";
+  renderPractice(ranked.sort(([, left], [, right]) => getKeyAccuracy(left) - getKeyAccuracy(right)).slice(0, 5));
+  selectHeatKey($("#selectedKey").dataset.key || "e");
+}
+function displayKey(key) {
+  if (key === "SPACE") return "Space";
+  if (key === "SHIFT-R" || key === "ALT-R" || key === "CTRL-R") return key.slice(0, -2);
+  return key.length === 1 ? key.toUpperCase() : key;
+}
+function selectHeatKey(key) {
+  const stat = keyStats[key] || { attempts: 0, correct: 0, incorrect: 0 };
+  $("#selectedKey").textContent = displayKey(key);
+  $("#selectedKey").dataset.key = key;
+  $("#selectedAttempts").textContent = stat.attempts;
+  $("#selectedCorrect").textContent = stat.correct;
+  $("#selectedErrors").textContent = stat.incorrect;
+  $("#selectedAccuracy").textContent = stat.attempts ? `${getKeyAccuracy(stat)}%` : "—";
+  $("#selectedStatus").textContent = stat.attempts < 10 ? `Need ${10 - stat.attempts} more attempt${10 - stat.attempts === 1 ? "" : "s"} for a heatmap rating.` : getKeyAccuracy(stat) >= 95 ? "Excellent control." : getKeyAccuracy(stat) >= 85 ? "Solid accuracy with room to refine." : "This key is a good target for practice.";
+  document.querySelectorAll("[data-heat-key]").forEach(button => button.classList.toggle("selected", button.dataset.heatKey === key));
+}
+function renderKeyRanking(selector, entries, emptyMessage) {
+  $(selector).innerHTML = entries.length ? entries.map(([key, stat]) => `<button class="key-ranking-item" data-ranking-key="${key}"><span class="ranking-key">${displayKey(key)}</span><span class="ranking-bar"><i style="width:${getKeyAccuracy(stat)}%"></i></span><span class="ranking-value">${getKeyAccuracy(stat)}% <small>${stat.incorrect} errors</small></span></button>`).join("") : `<p class="empty-state">${emptyMessage}</p>`;
+  document.querySelectorAll(`${selector} [data-ranking-key]`).forEach(button => button.addEventListener("click", () => selectHeatKey(button.dataset.rankingKey)));
+}
+function renderPractice(weakKeys) {
+  const words = [...new Set(weakKeys.flatMap(([key]) => PRACTICE_WORDS[key] || []))].slice(0, 8);
+  const practiceWords = words.length ? words : ["type", "flow", "practice"];
+  const practiceText = `${practiceWords.join(" ")}. Keep your rhythm steady and practice each key with care.`;
+  $("#practiceDescription").textContent = words.length ? `Focus on ${weakKeys.map(([key]) => displayKey(key)).join(", ")} with a short guided passage.` : "Start with a short baseline exercise. Recommendations will adapt after your first tests.";
+  $("#practiceWords").innerHTML = practiceWords.map(word => `<span>${word}</span>`).join("");
+  const button = $("#practiceButton");
+  button.disabled = false;
+  button.dataset.practice = practiceText;
+}
 function renderHistory() {
   const list = $("#historyList");
   list.innerHTML = history.length ? `<div class="history-header"><span>Date</span><span>Speed</span><span>Accuracy</span><span>Difficulty</span><span>Duration</span></div>${history.map(item => `<div class="history-item"><span>${formatDate(item.date)}</span><strong>${item.wpm} WPM</strong><span>${item.accuracy}%</span><span>${item.difficulty}</span><span>${item.duration}s</span></div>`).join("")}` : `<p class="empty-state">No completed tests yet. Finish a session to build your history.</p>`;
@@ -138,9 +185,9 @@ function renderResult(result, saved, previousBest = history.length ? Math.max(..
 }
 function showToast(message) { const toast = $("#toast"); toast.textContent = message; toast.classList.add("show"); setTimeout(() => toast.classList.remove("show"), 2800); }
 
-const test = new TypingTest(elements, { getDuration: () => settings.duration, getDifficulty: () => settings.difficulty, onMistake: () => { document.body.classList.remove("mistake-shake"); void document.body.offsetWidth; document.body.classList.add("mistake-shake"); }, onFinish: result => { currentResult = result; const previousBest = history.length ? Math.max(...history.map(item => item.wpm)) : 0; history = saveTest(result).history; const streakUpdate = recordStreakActivity(); streak = streakUpdate.streak; progress = getProgress(); const xpEarned = evaluateProgress(result) + streakUpdate.xpEarned; renderResult(result, true, previousBest, xpEarned); showView("results"); if (streakUpdate.milestones.length) showToast(`🔥 ${streakUpdate.milestones[streakUpdate.milestones.length - 1].days}-day streak milestone! +${streakUpdate.xpEarned} XP`); else if (streakUpdate.isNewDay) showToast(`🔥 You're on a ${streak.current}-day streak.`); } });
+const test = new TypingTest(elements, { getDuration: () => settings.duration, getDifficulty: () => settings.difficulty, getText: () => activePractice, onMistake: () => { document.body.classList.remove("mistake-shake"); void document.body.offsetWidth; document.body.classList.add("mistake-shake"); }, onFinish: result => { currentResult = result; const previousBest = history.length ? Math.max(...history.map(item => item.wpm)) : 0; history = saveTest(result).history; keyStats = mergeKeyStats(result.keyStats); const streakUpdate = recordStreakActivity(); streak = streakUpdate.streak; progress = getProgress(); const xpEarned = evaluateProgress(result) + streakUpdate.xpEarned; renderResult(result, true, previousBest, xpEarned); showView("results"); if (streakUpdate.milestones.length) showToast(`🔥 ${streakUpdate.milestones[streakUpdate.milestones.length - 1].days}-day streak milestone! +${streakUpdate.xpEarned} XP`); else if (streakUpdate.isNewDay) showToast(`🔥 You're on a ${streak.current}-day streak.`); } });
 
-document.querySelectorAll("[data-view]").forEach(button => button.addEventListener("click", () => { const name = button.dataset.view; if (name === "test") { activeChallenge = null; test.reset(); } showView(name); }));
+document.querySelectorAll("[data-view]").forEach(button => button.addEventListener("click", () => { const name = button.dataset.view; if (name === "test") { activeChallenge = null; activePractice = null; test.reset(); } showView(name); }));
 document.querySelectorAll("[data-duration]").forEach(button => button.addEventListener("click", () => { if (activeChallenge) { showToast(`Challenge duration is locked to ${activeChallenge.duration}s.`); return; } settings.duration = Number(button.dataset.duration); saveSettings(settings); document.querySelectorAll("[data-duration]").forEach(item => item.classList.toggle("selected", item === button)); test.reset(); }));
 document.querySelectorAll("[data-difficulty]").forEach(button => button.addEventListener("click", () => { if (activeChallenge) { showToast("Challenge difficulty is locked."); return; } settings.difficulty = button.dataset.difficulty; saveSettings(settings); document.querySelectorAll("[data-difficulty]").forEach(item => item.classList.toggle("selected", item === button)); test.reset(); }));
 elements.input.addEventListener("input", event => test.input(event.target.value));
@@ -149,6 +196,8 @@ elements.display.addEventListener("click", () => {
 });
 $("#restartButton").addEventListener("click", () => test.reset());
 $("#retakeButton").addEventListener("click", () => { test.reset(); showView("test"); });
+$("#practiceButton").addEventListener("click", event => { if (!event.currentTarget.dataset.practice) return; activeChallenge = null; activePractice = event.currentTarget.dataset.practice; settings.duration = 30; settings.difficulty = "easy"; saveSettings(settings); test.reset(); showView("test"); showToast("Focused practice started."); });
+$("#resetKeyStatsButton").addEventListener("click", () => { if (window.confirm("Reset all keyboard heatmap data? This cannot be undone.")) { resetKeyStats(); keyStats = {}; renderInsights(); showToast("Keyboard statistics reset."); } });
 $("#clearHistoryButton").addEventListener("click", () => { if (history.length && window.confirm("Clear all saved test history? This cannot be undone.")) { clearHistory(); history = []; renderHistory(); renderDashboard(); showToast("History cleared."); } });
 $("#mobileMenuButton").addEventListener("click", event => { const open = $(".main-nav").classList.toggle("open"); event.currentTarget.setAttribute("aria-expanded", open); });
 document.addEventListener("keydown", event => { if (event.key.toLowerCase() === "r" && views.test.classList.contains("active") && document.activeElement !== elements.input) test.reset(); if (event.key === "Escape" && views.test.classList.contains("active")) test.finish(); });

@@ -20,6 +20,7 @@
       <button class="nav-link active" data-view="dashboard">Dashboard</button>
       <button class="nav-link" data-view="test">Test</button>
       <button class="nav-link" data-view="challenges">Challenges</button>
+      <button class="nav-link" data-view="insights">Typing Insights</button>
       <button class="nav-link" data-view="results">History</button>
     </nav>
     <button class="icon-button mobile-menu" id="mobileMenuButton" aria-label="Toggle navigation" aria-expanded="false">☰</button>
@@ -123,6 +124,17 @@
           <p class="keyboard-hint">The timer starts with your first keystroke <span>•</span> <kbd>Esc</kbd> to finish</p>
         </div>
       </div>
+    </section>
+
+    <section class="view" id="insightsView" aria-labelledby="insightsTitle">
+      <div class="insights-heading"><div><p class="eyebrow">Typing intelligence</p><h1 id="insightsTitle">Know your keyboard.</h1><p>See which keys slow you down and turn errors into focused practice.</p></div><button class="danger-button" id="resetKeyStatsButton">Reset key data</button></div>
+      <div class="insights-panel panel">
+        <div class="section-heading"><div><p class="eyebrow">Accuracy map</p><h2>Keyboard heatmap</h2></div><div class="heatmap-legend"><span><i class="legend-dot heat-green"></i>95%+</span><span><i class="legend-dot heat-yellow"></i>85–94%</span><span><i class="legend-dot heat-orange"></i>70–84%</span><span><i class="legend-dot heat-red"></i>&lt;70%</span><span><i class="legend-dot heat-neutral"></i>10 attempts needed</span></div></div>
+        <div id="keyboardHeatmap" class="keyboard-heatmap" aria-label="Interactive keyboard heatmap"></div>
+        <div id="keyDetail" class="key-detail"><span class="eyebrow">Selected key</span><strong id="selectedKey">—</strong><div class="key-detail-stats"><span>Attempts <b id="selectedAttempts">0</b></span><span>Correct <b id="selectedCorrect">0</b></span><span>Errors <b id="selectedErrors">0</b></span><span>Accuracy <b id="selectedAccuracy">—</b></span></div><p id="selectedStatus">Select a key to inspect its performance.</p></div>
+      </div>
+      <div class="insight-columns"><section class="panel ranking-panel"><div class="section-heading"><div><p class="eyebrow">Focus areas</p><h2>Weakest keys</h2></div></div><div id="weakestKeys" class="key-ranking"></div></section><section class="panel ranking-panel"><div class="section-heading"><div><p class="eyebrow">In your flow</p><h2>Strongest keys</h2></div></div><div id="strongestKeys" class="key-ranking"></div></section></div>
+      <div class="insight-bottom"><section class="panel overall-panel"><p class="eyebrow">The big picture</p><h2>Overall statistics</h2><div class="overall-stats"><div><strong id="overallCharacters">0</strong><span>Characters typed</span></div><div><strong id="overallErrors">0</strong><span>Typing errors</span></div><div><strong id="overallAccuracy">—</strong><span>Character accuracy</span></div></div></section><section class="panel practice-panel"><p class="eyebrow">Targeted practice</p><h2>Improve your weak keys</h2><p id="practiceDescription">Start with a short baseline exercise. Recommendations will adapt after your first tests.</p><div id="practiceWords" class="practice-words"><span>type</span><span>flow</span><span>practice</span></div><button class="primary-button" id="practiceButton" data-practice="type flow practice. Keep your rhythm steady and practice each key with care.">Start focused exercise <span>→</span></button></section></div>
     </section>
 
     <section class="view" id="resultsView" aria-labelledby="resultsTitle">

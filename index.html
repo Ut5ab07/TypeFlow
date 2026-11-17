@@ -19,6 +19,7 @@
     <nav class="main-nav" aria-label="Main navigation">
       <button class="nav-link active" data-view="dashboard">Dashboard</button>
       <button class="nav-link" data-view="test">Test</button>
+      <button class="nav-link" data-view="challenges">Challenges</button>
       <button class="nav-link" data-view="results">History</button>
     </nav>
     <button class="icon-button mobile-menu" id="mobileMenuButton" aria-label="Toggle navigation" aria-expanded="false">☰</button>
@@ -61,6 +62,15 @@
         </article>
       </div>
 
+      <section class="panel streak-panel" aria-labelledby="streakTitle">
+        <div class="streak-summary">
+          <div class="streak-flame" aria-hidden="true">🔥</div>
+          <div><p class="eyebrow">Daily practice</p><h2 id="streakTitle"><span id="currentStreak">0</span> day streak</h2><p id="streakMessage">Complete one test to keep your streak alive.</p></div>
+        </div>
+        <div class="streak-metrics"><div><strong id="longestStreak">0</strong><span>Longest streak</span></div><div><strong id="totalActiveDays">0</strong><span>Active days</span></div><div><strong id="todayStatus">Pending</strong><span>Today's goal</span></div></div>
+        <div class="week-calendar"><div class="week-calendar-heading"><span>This week</span><span id="weekRange"></span></div><div id="weeklyCalendar" class="week-days"></div></div>
+      </section>
+
       <div class="dashboard-lower">
         <section class="panel activity-panel">
           <div class="section-heading"><div><p class="eyebrow">Your journey</p><h2>Recent activity</h2></div><button class="text-button" data-view="results">View history <span>→</span></button></div>
@@ -77,6 +87,15 @@
           </div>
         </section>
       </div>
+    </section>
+
+    <section class="view" id="challengesView" aria-labelledby="challengesTitle">
+      <div class="challenges-heading">
+        <div><p class="eyebrow">The TypeFlow circuit</p><h1 id="challengesTitle">Turn practice into progress.</h1><p>Complete focused challenges, earn XP, and unlock your next level.</p></div>
+        <div class="level-card player-level-card"><span class="eyebrow">Current level</span><strong id="playerLevel">Beginner</strong><div class="xp-line"><span id="playerXp">0 XP</span><span id="challengeCount">0 / 15 challenges</span></div><div class="xp-track"><span id="xpProgress"></span></div><small id="nextLevelLabel">4 challenges to unlock Moderate</small></div>
+      </div>
+      <div class="achievement-strip" id="achievementList"></div>
+      <div id="levelsContainer" class="levels-container"></div>
     </section>
 
     <section class="view" id="testView" aria-labelledby="testTitle">
